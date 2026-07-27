@@ -256,6 +256,39 @@ class ActiveTypeTests: XCTestCase {
         XCTAssertTrue(foundCustomAttributedStyling)
     }
 
+    func testNaturalAlignmentPreservesExplicitBaseWritingDirection() {
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.baseWritingDirection = .leftToRight
+        label.attributedText = NSAttributedString(string: "مرحبا", attributes: [.paragraphStyle: paragraphStyle])
+
+        let renderedParagraphStyle = label.textStorage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
+
+        XCTAssertEqual(label.textAlignment, .natural)
+        XCTAssertEqual(renderedParagraphStyle?.alignment, .left)
+        XCTAssertEqual(renderedParagraphStyle?.baseWritingDirection, .leftToRight)
+    }
+
+    func testNaturalAlignmentUsesEachParagraphWritingDirection() {
+        XCTAssertEqual(label.textAlignment, .natural)
+        label.text = "Hello\nمرحبا"
+
+        let englishParagraphStyle = label.textStorage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
+        let arabicLocation = (label.text! as NSString).range(of: "مرحبا").location
+        let arabicParagraphStyle = label.textStorage.attribute(.paragraphStyle, at: arabicLocation, effectiveRange: nil) as? NSParagraphStyle
+
+        XCTAssertEqual(englishParagraphStyle?.alignment, .left)
+        XCTAssertEqual(arabicParagraphStyle?.alignment, .right)
+    }
+
+    func testExplicitAlignmentOverridesWritingDirection() {
+        label.textAlignment = .center
+        label.text = "مرحبا"
+
+        let paragraphStyle = label.textStorage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
+
+        XCTAssertEqual(paragraphStyle?.alignment, .center)
+    }
+
     func testRemoveHandleMention() {
         label.handleMentionTap({_ in })
         XCTAssertNotNil(label.handleMentionTap)

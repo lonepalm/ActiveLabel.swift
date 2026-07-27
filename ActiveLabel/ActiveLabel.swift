@@ -8,6 +8,7 @@
 
 import Foundation
 import UIKit
+import ICU
 
 public protocol ActiveLabelDelegate: class {
     func didSelect(_ text: String, type: ActiveType)
@@ -373,18 +374,47 @@ typealias ElementTuple = (range: NSRange, element: ActiveElement, type: ActiveTy
     /// add line break mode
     fileprivate func addLineBreak(_ attrString: NSAttributedString) -> NSMutableAttributedString {
         let mutAttrString = NSMutableAttributedString(attributedString: attrString)
-        
-        var range = NSRange(location: 0, length: 0)
-        var attributes = mutAttrString.attributes(at: 0, effectiveRange: &range)
-        
-        let paragraphStyle = attributes[NSAttributedString.Key.paragraphStyle] as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
-        paragraphStyle.lineBreakMode = NSLineBreakMode.byWordWrapping
-        paragraphStyle.alignment = textAlignment
-        paragraphStyle.lineSpacing = lineSpacing
-        paragraphStyle.minimumLineHeight = minimumLineHeight > 0 ? minimumLineHeight: self.font.pointSize * 1.14
-        attributes[NSAttributedString.Key.paragraphStyle] = paragraphStyle
-        mutAttrString.setAttributes(attributes, range: range)
-        
+
+        let string = mutAttrString.string as NSString
+        var paragraphLocation = 0
+        while paragraphLocation < string.length {
+            var paragraphStart = 0
+            var paragraphEnd = 0
+            var contentsEnd = 0
+            string.getParagraphStart(&paragraphStart, end: &paragraphEnd, contentsEnd: &contentsEnd, for: NSRange(location: paragraphLocation, length: 0))
+            let paragraphRange = NSRange(location: paragraphStart, length: paragraphEnd - paragraphStart)
+            let existingParagraphStyle = mutAttrString.attribute(.paragraphStyle, at: paragraphStart, effectiveRange: nil) as? NSParagraphStyle
+            let paragraphStyle = existingParagraphStyle?.mutableCopy() as? NSMutableParagraphStyle ?? NSMutableParagraphStyle()
+            paragraphStyle.lineBreakMode = NSLineBreakMode.byWordWrapping
+            paragraphStyle.alignment = textAlignment
+            if textAlignment == .natural {
+                if paragraphStyle.baseWritingDirection == .leftToRight {
+                    paragraphStyle.alignment = .left
+                } else if paragraphStyle.baseWritingDirection == .rightToLeft {
+                    paragraphStyle.alignment = .right
+                } else {
+                    // NSLayoutManager resolves natural alignment from the UI language, so use the
+                    // Unicode bidi algorithm's first-strong rule to resolve it for user-generated text.
+                    let paragraph = string.substring(with: NSRange(location: paragraphStart, length: contentsEnd - paragraphStart))
+                    for scalar in paragraph.unicodeScalars {
+                        switch u_charDirection(Int32(scalar.value)) {
+                        case U_LEFT_TO_RIGHT:
+                            paragraphStyle.alignment = .left
+                        case U_RIGHT_TO_LEFT, U_RIGHT_TO_LEFT_ARABIC:
+                            paragraphStyle.alignment = .right
+                        default:
+                            continue
+                        }
+                        break
+                    }
+                }
+            }
+            paragraphStyle.lineSpacing = lineSpacing
+            paragraphStyle.minimumLineHeight = minimumLineHeight > 0 ? minimumLineHeight: self.font.pointSize * 1.14
+            mutAttrString.addAttribute(.paragraphStyle, value: paragraphStyle, range: paragraphRange)
+            paragraphLocation = paragraphEnd
+        }
+
         return mutAttrString
     }
     
