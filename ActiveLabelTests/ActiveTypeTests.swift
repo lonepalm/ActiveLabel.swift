@@ -256,17 +256,6 @@ class ActiveTypeTests: XCTestCase {
         XCTAssertTrue(foundCustomAttributedStyling)
     }
 
-    func testNaturalBaseWritingDirection() {
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.baseWritingDirection = .leftToRight
-        label.attributedText = NSAttributedString(string: "مرحبا", attributes: [.paragraphStyle: paragraphStyle])
-
-        let renderedParagraphStyle = label.textStorage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
-
-        XCTAssertEqual(renderedParagraphStyle?.alignment, label.textAlignment)
-        XCTAssertEqual(renderedParagraphStyle?.baseWritingDirection, .natural)
-    }
-
     func testRemoveHandleMention() {
         label.handleMentionTap({_ in })
         XCTAssertNotNil(label.handleMentionTap)
