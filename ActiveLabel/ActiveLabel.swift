@@ -155,9 +155,8 @@ typealias ElementTuple = (range: NSRange, element: ActiveElement, type: ActiveTy
     }
     
     open override func drawText(in rect: CGRect) {
-        let range = NSRange(location: 0, length: textStorage.length)
-        
         textContainer.size = rect.size
+        let range = layoutManager.glyphRange(for: textContainer)
         let newOrigin = textOrigin(inRect: rect)
         
         layoutManager.drawBackground(forGlyphRange: range, at: newOrigin)
@@ -445,7 +444,8 @@ typealias ElementTuple = (range: NSRange, element: ActiveElement, type: ActiveTy
         
         var correctLocation = location
         correctLocation.y -= heightCorrection
-        let boundingRect = layoutManager.boundingRect(forGlyphRange: NSRange(location: 0, length: textStorage.length), in: textContainer)
+        let glyphRange = layoutManager.glyphRange(for: textContainer)
+        let boundingRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
         guard boundingRect.contains(correctLocation) else {
             return nil
         }
