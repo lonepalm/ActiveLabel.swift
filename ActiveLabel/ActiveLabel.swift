@@ -450,10 +450,11 @@ typealias ElementTuple = (range: NSRange, element: ActiveElement, type: ActiveTy
             return nil
         }
         
-        let index = layoutManager.glyphIndex(for: correctLocation, in: textContainer)
+        let glyphIndex = layoutManager.glyphIndex(for: correctLocation, in: textContainer)
+        let characterIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
         
         for element in activeElements.map({ $0.1 }).joined() {
-            if index >= element.range.location && index <= element.range.location + element.range.length {
+            if NSLocationInRange(characterIndex, element.range) {
                 return element
             }
         }
